@@ -346,7 +346,7 @@ end)
 
 -- ===== ЛОГГЕР REMOTE =====
 local logFrame = Instance.new("TextLabel", gui)
-logFrame.Size = UDim2.new(0.5, 0, 0.4, 0)
+logFrame.Size = UDim2.new(0.5, 0, 0.35, 0)
 logFrame.Position = UDim2.new(0.3, 0, 0.05, 0)
 logFrame.BackgroundColor3 = Color3.new(0, 0, 0)
 logFrame.BackgroundTransparency = 0.3
@@ -357,6 +357,7 @@ logFrame.TextSize = 13
 logFrame.TextWrapped = true
 logFrame.Text = "Remote Log: бей врага вручную"
 logFrame.Visible = false
+logFrame.Active = false
 
 local lines = {}
 local function logLine(t)
@@ -369,27 +370,27 @@ end
 local hooked = false
 local function enableLogger()
     if hooked then return end
-    if not hookmetamethod then
-        logLine("hookmetamethod не поддерживается")
+    if not (hookmetamethod and newcclosure) then
+        logLine("hookmetamethod/newcclosure не поддерживается")
         return
     end
     hooked = true
-    local cc = checkcaller or function() return false end
     local orig
-    orig = hookmetamethod(game, "__namecall", function(self, ...)
+    orig = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
         local m = getnamecallmethod()
-        if S.remlog and (m == "FireServer" or m == "InvokeServer") and not cc() then
+        if S.remlog and (m == "FireServer" or m == "InvokeServer") then
             local args = table.pack(...)
-            pcall(function()
+            local name = tostring(self)
+            task.defer(function()
                 local parts = {}
                 for i = 1, args.n do
                     parts[i] = typeof(args[i]) .. ":" .. tostring(args[i])
                 end
-                logLine(self:GetFullName() .. " | " .. table.concat(parts, ", "))
+                logLine(name .. " | " .. table.concat(parts, ", "))
             end)
         end
         return orig(self, ...)
-    end)
+    end))
 end
 
 -- ===== МЕНЮ =====
