@@ -7,7 +7,7 @@ local S = {
     aura = false, tesp = false, esp = false, remlog = false,
     espFill = true, espName = true, espHP = true, espDist = true,
     teamCheck = true,
-    auraRange = 15, espRange = 300,
+    auraRange = 30, espRange = 300,
 }
 local COLORS = {
     Color3.fromRGB(255, 0, 0), Color3.fromRGB(0, 255, 0),
@@ -16,7 +16,8 @@ local COLORS = {
 }
 local colorIdx = 1
 
--- Если найдёшь Remote удара, впиши его сюда (например game.ReplicatedStorage.Remotes.Hit)
+-- Если найдёшь Remote удара, впиши его сюда, например:
+-- local HIT_REMOTE = game.ReplicatedStorage.Remotes.Hit
 local HIT_REMOTE = nil
 local function hitArgs(target) return {target.Character} end
 
@@ -203,17 +204,26 @@ RunService.Heartbeat:Connect(function()
     if not S.aura then return end
     local target = nearest(S.auraRange)
     if not target then return end
+    local _, _, tr = alive(target)
+    local myRoot = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+    if not (tr and myRoot) then return end
+
+    -- встаём вплотную позади врага, лицом к нему
+    local pos = (tr.CFrame * CFrame.new(0, 0, 3)).Position
+    myRoot.CFrame = CFrame.lookAt(pos, tr.Position)
+
     if HIT_REMOTE then
         pcall(function() HIT_REMOTE:FireServer(unpack(hitArgs(target))) end)
     end
+
     local tool = getTool()
-    if not tool then return end
-    tool:Activate()
-    local handle = tool:FindFirstChild("Handle")
-    local _, _, tr = alive(target)
-    if handle and tr and firetouchinterest then
-        firetouchinterest(handle, tr, 0)
-        firetouchinterest(handle, tr, 1)
+    if tool then
+        tool:Activate()
+        local handle = tool:FindFirstChild("Handle")
+        if handle and firetouchinterest then
+            firetouchinterest(handle, tr, 0)
+            firetouchinterest(handle, tr, 1)
+        end
     end
 end)
 
@@ -337,7 +347,7 @@ end)
 -- ===== ЛОГГЕР REMOTE =====
 local logFrame = Instance.new("TextLabel", gui)
 logFrame.Size = UDim2.new(0.5, 0, 0.4, 0)
-logFrame.Position = UDim2.new(0.25, 0, 0.05, 0)
+logFrame.Position = UDim2.new(0.3, 0, 0.05, 0)
 logFrame.BackgroundColor3 = Color3.new(0, 0, 0)
 logFrame.BackgroundTransparency = 0.3
 logFrame.TextColor3 = Color3.new(1, 1, 1)
@@ -345,6 +355,7 @@ logFrame.TextXAlignment = Enum.TextXAlignment.Left
 logFrame.TextYAlignment = Enum.TextYAlignment.Top
 logFrame.TextSize = 13
 logFrame.TextWrapped = true
+logFrame.Text = "Remote Log: бей врага вручную"
 logFrame.Visible = false
 
 local lines = {}
@@ -384,7 +395,7 @@ end
 -- ===== МЕНЮ =====
 section("COMBAT")
 toggle("Kill Aura", "aura")
-stepper("Радиус", "auraRange", 5, 5, 50)
+stepper("Радиус", "auraRange", 5, 5, 100)
 
 section("TARGET ESP")
 toggle("Target ESP", "tesp")
